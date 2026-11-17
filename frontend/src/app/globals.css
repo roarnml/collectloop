@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/*
+ * PayTrain brand tokens (guide section 8): deep navy/ink, electric blue,
+ * restrained cyan, light neutral surfaces, subtle borders, moderate radius.
+ */
+@theme {
+  --color-ink: #0b1b33;
+  --color-navy: #10264a;
+  --color-navy-soft: #1b3460;
+  --color-brand: #2456e6;
+  --color-brand-strong: #1a43c0;
+  --color-brand-soft: #e8eefd;
+  --color-accent: #0ea5c6;
+  --color-surface: #f6f8fb;
+  --color-card: #ffffff;
+  --color-line: #e2e7ef;
+  --color-muted: #5b6b82;
+
+  --color-ok: #0f7a4a;
+  --color-ok-soft: #e4f5ec;
+  --color-warn: #9a5b00;
+  --color-warn-soft: #fdf1dc;
+  --color-bad: #b42318;
+  --color-bad-soft: #fde8e6;
+  --color-info: #1a43c0;
+  --color-info-soft: #e8eefd;
+  --color-neutral: #475467;
+  --color-neutral-soft: #eef1f5;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-card: 0.75rem;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
