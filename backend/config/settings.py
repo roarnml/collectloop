@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 import os
-
+from corsheaders.defaults import default_headers
 import dj_database_url
 from dotenv import load_dotenv
 
@@ -177,6 +177,11 @@ CORS_ALLOWED_ORIGINS = [
         "http://localhost:3000"
     ).split(",")
     if origin.strip()
+]
+
+CORS_ALLOW_HEADERS = [
+    *default_headers,
+    "idempotency-key",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
