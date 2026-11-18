@@ -1,0 +1,10 @@
+
+{
+  "watch": ["src"],
+  "ext": "js,mjs,cjs",
+  "ignore": [
+    "grant-cache.json",
+    "grant-cache.*.json",
+    "*.tmp"
+  ]
+}

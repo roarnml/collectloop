@@ -1,0 +1,63 @@
+import type {
+  Business,
+  CreateBusinessInput,
+  CreatePaymentRequestInput,
+  Customer,
+  DashboardSummary,
+  LoginInput,
+  PaymentRequest,
+  PaymentStatusResponse,
+  PublicPaymentRequest,
+  RegisterInput,
+  StartPaymentInput,
+  StartPaymentResponse,
+  User,
+} from "@/lib/types";
+
+/** Everything the UI needs from the backend. Pages only talk to this interface. */
+export interface PayTrainApi {
+  // Auth. login/register store the session tokens; logout clears them.
+  register(input: RegisterInput): Promise<void>;
+  login(input: LoginInput): Promise<void>;
+  logout(): Promise<void>;
+  getCurrentUser(): Promise<User>;
+
+  // Businesses owned by the signed-in user
+  listBusinesses(): Promise<Business[]>;
+  createBusiness(input: CreateBusinessInput): Promise<Business>;
+
+  // Business owner (authenticated, scoped to the active business)
+  getDashboardSummary(): Promise<DashboardSummary>;
+  listPaymentRequests(): Promise<PaymentRequest[]>;
+  getPaymentRequest(id: string): Promise<PaymentRequest>;
+  createPaymentRequest(input: CreatePaymentRequestInput): Promise<PaymentRequest>;
+  listCustomers(): Promise<Customer[]>;
+
+  // Customer (public, no PayTrain account)
+  getPublicPaymentRequest(publicUuid: string): Promise<PublicPaymentRequest>;
+  startPayment(publicUuid: string, input: StartPaymentInput): Promise<StartPaymentResponse>;
+  /** Asks the backend to verify the payment with the provider and report its status. */
+  getPaymentStatus(paymentId: string, publicUuid: string | null): Promise<PaymentStatusResponse>;
+}
+
+/** Display-safe error. `fieldErrors` maps form fields to messages. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly fieldErrors: Record<string, string> = {},
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export function isUnauthorized(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 401;
+}
+
+export function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) return err.message;
+  if (err instanceof TypeError) return "Could not reach PayTrain. Check your connection and try again.";
+  return "Something went wrong. Please try again.";
+}
