@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button, Card, ErrorState, Field, LoadingState, PageHeader, inputClass } from "@/components/ui";
-import { API_MODE, ApiError, api, errorMessage } from "@/lib/api";
+import { ApiError, api, errorMessage } from "@/lib/api";
 import { todayDate } from "@/lib/format/date";
 import { parseAmount } from "@/lib/format/money";
 import { useQuery } from "@/lib/hooks/useQuery";
@@ -22,7 +22,6 @@ export default function NewRequestPage() {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [allowPartial, setAllowPartial] = useState(true);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -56,7 +55,6 @@ export default function NewRequestPage() {
         description,
         amount: { value: minor.toString(), ...ASSET },
         due_date: dueDate || null,
-        allow_partial: allowPartial,
       });
       router.push(`/requests/${created.id}?created=1`);
     } catch (err) {
@@ -164,22 +162,6 @@ export default function NewRequestPage() {
               </Field>
             </div>
 
-            {API_MODE === "mock" && (
-            <label className="flex items-start gap-3 rounded-lg border border-line p-4">
-              <input
-                type="checkbox"
-                checked={allowPartial}
-                onChange={(e) => setAllowPartial(e.target.checked)}
-                className="mt-0.5 size-4 accent-brand"
-              />
-              <span className="text-sm">
-                <span className="font-medium text-ink">Allow part payments</span>
-                <span className="block text-muted">
-                  Lets the customer pay a deposit now and the remaining balance later.
-                </span>
-              </span>
-            </label>
-            )}
 
             <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
               <Button type="button" variant="secondary" onClick={() => router.push("/requests")} disabled={submitting}>

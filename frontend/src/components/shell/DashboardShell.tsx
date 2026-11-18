@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Logo } from "@/components/shell/Logo";
-import { SimulatedBanner } from "@/components/ui";
-import { API_MODE } from "@/lib/api";
-import { resetMockData } from "@/lib/api/mock";
 import { cx } from "@/lib/cx";
 
 export { Logo };
@@ -100,7 +97,6 @@ function BusinessSwitcher() {
 }
 
 function AccountFooter() {
-  const router = useRouter();
   const { user, signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   return (
@@ -119,18 +115,6 @@ function AccountFooter() {
       >
         {signingOut ? "Signing out…" : "Sign out"}
       </button>
-      {API_MODE === "mock" && (
-        <button
-          type="button"
-          onClick={() => {
-            resetMockData();
-            router.replace("/login");
-          }}
-          className="rounded-lg px-3 py-2 text-left text-xs text-white/40 hover:bg-white/8 hover:text-white/70"
-        >
-          Reset demo data
-        </button>
-      )}
     </div>
   );
 }
@@ -157,7 +141,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SimulatedBanner compact />
       <div className="flex flex-1">
         {/* Desktop sidebar */}
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-6 bg-navy px-4 py-6 lg:flex">

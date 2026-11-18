@@ -37,22 +37,14 @@ function Checkout({ request: r }: { request: PublicPaymentRequest }) {
     setError(null);
     setAmountError(null);
 
-    let amount = r.outstanding_amount;
-    if (r.allow_partial) {
-      const minor = parseAmount(amountInput, r.amount.assetScale);
-      if (minor === null || minor <= 0n) return setAmountError("Enter a valid amount greater than zero.");
-      if (minor > toMinor(r.outstanding_amount)) return setAmountError("That is more than the remaining balance.");
-      amount = { ...r.amount, value: minor.toString() };
-    }
+    const minor = parseAmount(amountInput, r.amount.assetScale);
+    if (minor === null || minor <= 0n) return setAmountError("Enter a valid amount greater than zero.");
+    if (minor > toMinor(r.outstanding_amount)) return setAmountError("That is more than the remaining balance.");
+    const amount = { ...r.amount, value: minor.toString() };
 
     setSubmitting(true);
     try {
       const res = await api.startPayment(r.public_uuid, { amount, idempotency_key: idempotencyKey });
-      if (res.next_action_type === "redirect" && res.redirect_url) {
-        // Usually an external wallet/provider URL, so a full navigation.
-        window.location.assign(res.redirect_url);
-        return; // Keep the button disabled while the browser navigates away.
-      }
       if (res.next_action_type === "pay_to_url" && res.payment_url) {
         saveHandoff(res.payment_id, {
           url: res.payment_url,
@@ -103,28 +95,25 @@ function Checkout({ request: r }: { request: PublicPaymentRequest }) {
       ) : (
         <Card className="p-5">
           <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-            {r.allow_partial && (
-              <Field
-                label={`Amount to pay now (${r.amount.assetCode})`}
-                htmlFor="pay-amount"
-                error={amountError ?? undefined}
-                hint="You can pay part now, such as a deposit, and the rest later."
-              >
-                <input
-                  id="pay-amount"
-                  inputMode="decimal"
-                  value={amountInput}
-                  onChange={(e) => {
-                    setAmountInput(e.target.value);
-                    setIdempotencyKey(crypto.randomUUID());
-                  }}
-                  aria-invalid={!!amountError}
-                  aria-describedby={amountError ? "pay-amount-error" : undefined}
-                  className={`${inputClass} text-base tabular-nums`}
-                />
-              </Field>
-            )}
-            {!r.allow_partial && amountError && <p className="text-sm text-bad">{amountError}</p>}
+            <Field
+              label={`Amount to pay now (${r.amount.assetCode})`}
+              htmlFor="pay-amount"
+              error={amountError ?? undefined}
+              hint="You can pay part now, such as a deposit, and the rest later."
+            >
+              <input
+                id="pay-amount"
+                inputMode="decimal"
+                value={amountInput}
+                onChange={(e) => {
+                  setAmountInput(e.target.value);
+                  setIdempotencyKey(crypto.randomUUID());
+                }}
+                aria-invalid={!!amountError}
+                aria-describedby={amountError ? "pay-amount-error" : undefined}
+                className={`${inputClass} text-base tabular-nums`}
+              />
+            </Field>
 
             <div className="rounded-lg bg-brand-soft p-3 text-sm text-navy">
               Next, you&apos;ll approve this payment with your Open Payments wallet. It&apos;s only marked as paid once

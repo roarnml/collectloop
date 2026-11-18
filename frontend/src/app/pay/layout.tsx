@@ -1,11 +1,9 @@
 import { Logo } from "@/components/shell/Logo";
-import { SimulatedBanner } from "@/components/ui";
 
 /** Customer-facing pages: no dashboard chrome, no login, phone-first. */
 export default function PayLayout({ children }: LayoutProps<"/pay">) {
   return (
     <div className="flex min-h-screen flex-col">
-      <SimulatedBanner compact />
       <header className="border-b border-line bg-card px-4 py-3">
         <div className="mx-auto flex max-w-md items-center justify-between">
           <Logo tone="dark" />

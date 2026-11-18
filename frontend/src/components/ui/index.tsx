@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
-import { API_MODE, errorMessage, isUnauthorized } from "@/lib/api";
+import { errorMessage, isUnauthorized } from "@/lib/api";
 import { cx } from "@/lib/cx";
 import { formatMoney, percentOf } from "@/lib/format/money";
 import { PAYMENT_STATUS, REQUEST_STATUS, type Tone } from "@/lib/format/status";
@@ -90,19 +90,16 @@ const toneStyles: Record<Tone, string> = {
   danger: "bg-bad-soft text-bad",
 };
 
-function Badge({ tone, children, simulated }: { tone: Tone; children: ReactNode; simulated?: boolean }) {
+function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
     <span
       className={cx(
         "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium",
         toneStyles[tone],
-        // Simulated success must never look identical to a real confirmed payment.
-        simulated && tone === "success" && "border border-dashed border-ok/60 bg-transparent",
       )}
     >
       <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
       {children}
-      {simulated && tone === "success" && <span className="font-normal opacity-80">(simulated)</span>}
     </span>
   );
 }
@@ -112,29 +109,9 @@ export function RequestStatusBadge({ status }: { status: PaymentRequestStatus })
   return <Badge tone={s.tone}>{s.label}</Badge>;
 }
 
-export function PaymentStatusBadge({ status, simulated }: { status: PaymentStatus; simulated?: boolean }) {
+export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
   const s = PAYMENT_STATUS[status];
-  return (
-    <Badge tone={s.tone} simulated={simulated}>
-      {s.label}
-    </Badge>
-  );
-}
-
-export function SimulatedBanner({ compact }: { compact?: boolean }) {
-  if (API_MODE !== "mock") return null;
-  return (
-    <div
-      role="note"
-      className={cx(
-        "border-b border-dashed border-warn/40 bg-warn-soft text-warn",
-        compact ? "px-4 py-1.5 text-xs" : "px-4 py-2 text-sm",
-      )}
-    >
-      <strong className="font-semibold">Simulated mode.</strong> Mock data stored in this browser. No real Open
-      Payments calls are made and no money moves.
-    </div>
-  );
+  return <Badge tone={s.tone}>{s.label}</Badge>;
 }
 
 // ---------- money ----------

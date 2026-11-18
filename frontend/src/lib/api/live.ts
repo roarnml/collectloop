@@ -13,7 +13,6 @@ import type {
   PublicPaymentRequest,
   StartPaymentInput,
   StartPaymentResponse,
-  Transaction,
   User,
 } from "@/lib/types";
 import { clearSession, getTokens, setTokens } from "@/lib/auth/session";
@@ -178,11 +177,9 @@ function mapRequest(r: ApiPaymentRequest, customers: Map<string, Customer>, busi
     amount: toMoney(r.total_amount, r.currency),
     amount_paid: toMoney(r.amount_paid, r.currency),
     outstanding_amount: toMoney(r.outstanding_amount, r.currency),
-    allow_partial: true, // The backend accepts any amount up to the outstanding balance.
     due_date: r.due_date,
     status: requestStatus(r.status, r.due_date),
     created_at: r.created_at,
-    is_simulated: false,
   };
 }
 
@@ -195,10 +192,8 @@ function mapPublicRequest(r: ApiPublicPaymentRequest): PublicPaymentRequest {
     amount: toMoney(r.total_amount, r.currency),
     amount_paid: toMoney(r.amount_paid, r.currency),
     outstanding_amount: toMoney(r.outstanding_amount, r.currency),
-    allow_partial: true,
     due_date: r.due_date,
     status: requestStatus(r.status, r.due_date),
-    is_simulated: false,
   };
 }
 
@@ -338,9 +333,6 @@ async function listRequests(): Promise<PaymentRequest[]> {
 // ---------- API ----------
 
 export const liveApi: PayTrainApi = {
-  mode: "live",
-  supportsTransactions: false,
-
   async register(input) {
     try {
       await request("/auth/register/", {
@@ -464,10 +456,6 @@ export const liveApi: PayTrainApi = {
   listCustomers: async () =>
     (await request<ApiCustomer[]>("/customers/")).map(mapCustomer).sort((a, b) => a.name.localeCompare(b.name)),
 
-  async listTransactions(): Promise<Transaction[]> {
-    throw new ApiError("Payment history isn't available from the API yet.", 501);
-  },
-
   getPublicPaymentRequest: async (publicUuid) =>
     mapPublicRequest(
       await request<ApiPublicPaymentRequest>(`/public/payment-requests/${encodeURIComponent(publicUuid)}/`, { auth: false }),
@@ -491,10 +479,8 @@ export const liveApi: PayTrainApi = {
         payment_id: res.payment.idempotency_key,
         status: txnStatus(res.payment.status),
         next_action_type: paymentUrl ? "pay_to_url" : "none",
-        redirect_url: null,
         payment_url: paymentUrl,
         expires_at: null,
-        is_simulated: false,
       };
     } catch (err) {
       renameFields(err, {});
@@ -529,7 +515,6 @@ export const liveApi: PayTrainApi = {
       verified_at: null, // Not returned by the verify endpoint.
       failure_message: status === "failed" || status === "cancelled" ? res.message : null,
       status_message: statusMessage,
-      is_simulated: false,
     };
   },
 };

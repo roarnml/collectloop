@@ -12,11 +12,9 @@ export const REQUEST_STATUS: Record<PaymentRequestStatus, { label: string; tone:
 };
 
 export const PAYMENT_STATUS: Record<PaymentStatus, { label: string; tone: Tone }> = {
-  initiated: { label: "Started", tone: "neutral" },
-  awaiting_authorization: { label: "Awaiting authorisation", tone: "info" },
+  awaiting_authorization: { label: "Awaiting payment", tone: "info" },
   processing: { label: "Processing", tone: "info" },
   succeeded: { label: "Confirmed", tone: "success" },
   failed: { label: "Failed", tone: "danger" },
   cancelled: { label: "Cancelled", tone: "neutral" },
-  expired: { label: "Expired", tone: "neutral" },
 };

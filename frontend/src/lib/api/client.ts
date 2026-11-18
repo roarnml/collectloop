@@ -11,18 +11,11 @@ import type {
   RegisterInput,
   StartPaymentInput,
   StartPaymentResponse,
-  Transaction,
   User,
 } from "@/lib/types";
 
-/**
- * Everything the UI needs from the backend. Pages only talk to this
- * interface, so swapping mock data for the real Django API is one switch
- * (NEXT_PUBLIC_API_MODE) rather than a rewrite.
- */
+/** Everything the UI needs from the backend. Pages only talk to this interface. */
 export interface PayTrainApi {
-  readonly mode: "mock" | "live";
-
   // Auth. login/register store the session tokens; logout clears them.
   register(input: RegisterInput): Promise<void>;
   login(input: LoginInput): Promise<void>;
@@ -39,9 +32,6 @@ export interface PayTrainApi {
   getPaymentRequest(id: string): Promise<PaymentRequest>;
   createPaymentRequest(input: CreatePaymentRequestInput): Promise<PaymentRequest>;
   listCustomers(): Promise<Customer[]>;
-  /** False when the backend has no transaction history endpoint yet. */
-  readonly supportsTransactions: boolean;
-  listTransactions(params?: { requestId?: string }): Promise<Transaction[]>;
 
   // Customer (public, no PayTrain account)
   getPublicPaymentRequest(publicUuid: string): Promise<PublicPaymentRequest>;

@@ -28,20 +28,13 @@ export type PaymentRequestStatus =
 
 /** Status of a single payment attempt against a request. */
 export type PaymentStatus =
-  | "initiated"
   | "awaiting_authorization"
   | "processing"
   | "succeeded"
   | "failed"
-  | "cancelled"
-  | "expired";
+  | "cancelled";
 
-export const TERMINAL_PAYMENT_STATUSES: readonly PaymentStatus[] = [
-  "succeeded",
-  "failed",
-  "cancelled",
-  "expired",
-];
+export const TERMINAL_PAYMENT_STATUSES: readonly PaymentStatus[] = ["succeeded", "failed", "cancelled"];
 
 // ---------- auth & business ----------
 
@@ -106,13 +99,10 @@ export interface PaymentRequest {
   amount: Money;
   amount_paid: Money;
   outstanding_amount: Money;
-  allow_partial: boolean;
   /** Local calendar date, "YYYY-MM-DD". */
   due_date: string | null;
   status: PaymentRequestStatus;
   created_at: string;
-  /** True when this record comes from mock data, not the real backend. */
-  is_simulated: boolean;
 }
 
 /** Safe public subset shown to a customer without a PayTrain account. */
@@ -124,11 +114,9 @@ export interface PublicPaymentRequest {
   amount: Money;
   amount_paid: Money;
   outstanding_amount: Money;
-  allow_partial: boolean;
   /** Local calendar date, "YYYY-MM-DD". */
   due_date: string | null;
   status: PaymentRequestStatus;
-  is_simulated: boolean;
 }
 
 export interface CreatePaymentRequestInput {
@@ -139,7 +127,6 @@ export interface CreatePaymentRequestInput {
   amount: Money;
   /** Local calendar date, "YYYY-MM-DD". */
   due_date: string | null;
-  allow_partial: boolean;
 }
 
 export interface StartPaymentInput {
@@ -153,15 +140,12 @@ export interface StartPaymentResponse {
   payment_id: string;
   status: PaymentStatus;
   /**
-   * redirect: send the customer to `redirect_url` (wallet consent screen).
    * pay_to_url: the customer pays `payment_url` (an Open Payments
    *   incoming-payment URL) from their own wallet, then PayTrain verifies it.
    */
-  next_action_type: "redirect" | "pay_to_url" | "none";
-  redirect_url: string | null;
+  next_action_type: "pay_to_url" | "none";
   payment_url: string | null;
   expires_at: string | null;
-  is_simulated: boolean;
 }
 
 /** Backend-verified status. The frontend never decides success on its own. */
@@ -176,22 +160,8 @@ export interface PaymentStatusResponse {
   failure_message: string | null;
   /** Extra provider detail for non-final states, e.g. partly received. */
   status_message: string | null;
-  is_simulated: boolean;
 }
 
-export interface Transaction {
-  id: string;
-  request_id: string;
-  request_reference: string;
-  provider: string;
-  provider_reference: string | null;
-  amount: Money;
-  status: PaymentStatus;
-  verified_at: string | null;
-  created_at: string;
-  failure_message: string | null;
-  is_simulated: boolean;
-}
 
 export interface DashboardSummary {
   collected_total: Money;

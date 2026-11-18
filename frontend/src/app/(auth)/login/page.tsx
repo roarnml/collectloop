@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { Button, Card, Field, inputClass } from "@/components/ui";
-import { API_MODE, ApiError, api, errorMessage } from "@/lib/api";
-import { signInAsDemo } from "@/lib/api/mock";
+import { ApiError, api, errorMessage } from "@/lib/api";
 import { getTokens, safeNextPath } from "@/lib/auth/session";
 
 function LoginForm() {
@@ -81,18 +80,6 @@ function LoginForm() {
         </Button>
       </form>
 
-      {API_MODE === "mock" && (
-        <button
-          type="button"
-          onClick={() => {
-            signInAsDemo();
-            router.replace(next);
-          }}
-          className="mt-3 w-full rounded-lg border border-dashed border-warn/40 px-3 py-2 text-xs text-warn hover:bg-warn-soft"
-        >
-          Open the demo business (simulated mode only)
-        </button>
-      )}
 
       <p className="mt-6 text-center text-sm text-muted">
         New to PayTrain?{" "}

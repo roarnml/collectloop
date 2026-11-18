@@ -12,11 +12,10 @@ import {
   LoadingState,
   PageHeader,
   PaidProgress,
-  PaymentStatusBadge,
   RequestStatusBadge,
 } from "@/components/ui";
 import { api } from "@/lib/api";
-import { formatDate, formatDateTime } from "@/lib/format/date";
+import { formatDate } from "@/lib/format/date";
 import { useQuery } from "@/lib/hooks/useQuery";
 
 function CopyLink({ url }: { url: string }) {
@@ -62,10 +61,6 @@ function RequestDetail() {
   const { id } = useParams<{ id: string }>();
   const justCreated = useSearchParams().get("created") === "1";
   const req = useQuery(() => api.getPaymentRequest(id), [id]);
-  const txns = useQuery(
-    () => (api.supportsTransactions ? api.listTransactions({ requestId: id }) : Promise.resolve(null)),
-    [id],
-  );
 
   if (req.status === "loading") return <LoadingState />;
   if (req.status === "error") return <ErrorState error={req.error} onRetry={req.reload} />;
@@ -118,7 +113,7 @@ function RequestDetail() {
             <PaidProgress paid={r.amount_paid} total={r.amount} />
           </div>
           <p className="mt-3 text-xs text-muted">
-            {r.allow_partial ? "Part payments allowed." : "Must be paid in full."} Only verified payments count toward the
+            Customers can pay in parts. Only verified payments count toward the
             amount paid.
           </p>
         </Card>
@@ -133,39 +128,14 @@ function RequestDetail() {
       <Card className="mt-4">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 className="font-semibold text-ink">Payments</h2>
-          <Button variant="ghost" className="px-2 py-1" onClick={() => { req.reload(); txns.reload(); }}>
+          <Button variant="ghost" className="px-2 py-1" onClick={req.reload}>
             Refresh
           </Button>
         </div>
-        {txns.status === "loading" && <div className="px-5"><LoadingState /></div>}
-        {txns.status === "error" && <div className="p-5"><ErrorState error={txns.error} onRetry={txns.reload} /></div>}
-        {txns.status === "success" && txns.data === null && (
-          <EmptyState
-            title="Payment history coming soon"
-            body="The API doesn't list individual payments yet. The totals above already include every verified payment."
-          />
-        )}
-        {txns.status === "success" &&
-          txns.data !== null &&
-          (txns.data.length === 0 ? (
-            <EmptyState title="No payments yet" body="Payments appear here once the customer starts paying." />
-          ) : (
-            <ol className="divide-y divide-line">
-              {txns.data.map((t) => (
-                <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                  <div className="min-w-0">
-                    <p className="font-medium"><Amount value={t.amount} /></p>
-                    <p className="text-xs text-muted">
-                      {t.verified_at ? `Verified ${formatDateTime(t.verified_at)}` : `Started ${formatDateTime(t.created_at)}`}
-                      {t.provider_reference && <> · <span className="font-mono">{t.provider_reference}</span></>}
-                    </p>
-                    {t.failure_message && <p className="mt-1 text-xs text-bad">{t.failure_message}</p>}
-                  </div>
-                  <PaymentStatusBadge status={t.status} simulated={t.is_simulated} />
-                </li>
-              ))}
-            </ol>
-          ))}
+        <EmptyState
+          title="Payment history coming soon"
+          body="The API doesn't list individual payments yet. The totals above already include every verified payment."
+        />
       </Card>
     </>
   );

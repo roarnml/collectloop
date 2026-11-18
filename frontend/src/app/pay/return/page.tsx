@@ -209,7 +209,7 @@ function StatusView() {
   if (data.status === "succeeded") {
     return (
       <Card
-        className={`flex flex-col gap-4 p-6 ${data.is_simulated ? "border-2 border-dashed border-ok/50" : "border-ok/30"}`}
+        className="flex flex-col gap-4 border-ok/30 p-6"
         aria-live="polite"
       >
         <div className="flex flex-col items-center gap-2 text-center">
@@ -219,9 +219,8 @@ function StatusView() {
             </svg>
           </span>
           <h1 className="text-lg font-semibold text-ink">
-            {data.is_simulated ? "Simulated payment confirmed" : "Payment confirmed"}
+            Payment confirmed
           </h1>
-          {data.is_simulated && <p className="text-xs text-warn">Test data only. No money was moved.</p>}
         </div>
         <dl className="divide-y divide-line border-y border-line text-sm">
           {data.business_name && (
@@ -241,7 +240,6 @@ function StatusView() {
   const copy: Record<string, { title: string; body: string }> = {
     failed: { title: "Payment failed", body: "Your payment didn't go through. You haven't been charged for this attempt." },
     cancelled: { title: "Payment cancelled", body: "The payment was not approved. Nothing was charged." },
-    expired: { title: "Payment expired", body: "The approval window closed before the payment was completed." },
   };
   const c = copy[data.status];
 
