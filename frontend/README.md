@@ -10,14 +10,15 @@ npm install
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api npm run dev
 ```
 
-Open http://localhost:3000. The backend must be running and must list the
-frontend's origin in `CORS_ALLOWED_ORIGINS`.
+Open http://localhost:3000. Without `NEXT_PUBLIC_API_BASE_URL` the app uses the
+deployed API on Render. The backend must list the frontend's origin (e.g.
+`https://paytrain.vercel.app`) in `CORS_ALLOWED_ORIGINS`.
 
 ## Environment
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Django API root, e.g. `https://<railway-host>/api` (default `http://localhost:8000/api`) |
+| `NEXT_PUBLIC_API_BASE_URL` | Django API root (default: the deployed API, `https://paytrain.onrender.com/api`). Use `http://localhost:8000/api` for a local backend. |
 | `NEXT_PUBLIC_DEFAULT_CURRENCY` | Currency for new requests (default `NGN`). Must match the business's Open Payments wallet, or the backend rejects payment attempts. |
 
 ## Routes
