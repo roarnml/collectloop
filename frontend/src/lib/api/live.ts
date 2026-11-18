@@ -36,7 +36,9 @@ import { ApiError, type PayTrainApi } from "./client";
  * Payments keys or tokens; the backend's adapter does.
  */
 
-const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
+// Deployed PayTrain API on Render. Override with NEXT_PUBLIC_API_BASE_URL (e.g. http://localhost:8000/api for local dev).
+const DEFAULT_API_BASE_URL = "https://paytrain.onrender.com/api";
+const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, "");
 const API_SCALE = 2; // DecimalField(decimal_places=2) on every backend amount.
 
 // ---------- backend shapes ----------
