@@ -62,7 +62,10 @@ function RequestDetail() {
   const { id } = useParams<{ id: string }>();
   const justCreated = useSearchParams().get("created") === "1";
   const req = useQuery(() => api.getPaymentRequest(id), [id]);
-  const txns = useQuery(() => api.listTransactions({ requestId: id }), [id]);
+  const txns = useQuery(
+    () => (api.supportsTransactions ? api.listTransactions({ requestId: id }) : Promise.resolve(null)),
+    [id],
+  );
 
   if (req.status === "loading") return <LoadingState />;
   if (req.status === "error") return <ErrorState error={req.error} onRetry={req.reload} />;
@@ -82,7 +85,7 @@ function RequestDetail() {
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="font-mono">{r.reference}</span>
               <span>{r.customer.name}</span>
-              <span>{r.due_at ? `Due ${formatDate(r.due_at)}` : "No due date"}</span>
+              <span>{r.due_date ? `Due ${formatDate(r.due_date)}` : "No due date"}</span>
             </span>
           }
           actions={<RequestStatusBadge status={r.status} />}
@@ -136,7 +139,14 @@ function RequestDetail() {
         </div>
         {txns.status === "loading" && <div className="px-5"><LoadingState /></div>}
         {txns.status === "error" && <div className="p-5"><ErrorState error={txns.error} onRetry={txns.reload} /></div>}
+        {txns.status === "success" && txns.data === null && (
+          <EmptyState
+            title="Payment history coming soon"
+            body="The API doesn't list individual payments yet. The totals above already include every verified payment."
+          />
+        )}
         {txns.status === "success" &&
+          txns.data !== null &&
           (txns.data.length === 0 ? (
             <EmptyState title="No payments yet" body="Payments appear here once the customer starts paying." />
           ) : (

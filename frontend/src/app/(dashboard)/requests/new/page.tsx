@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button, Card, ErrorState, Field, LoadingState, PageHeader, inputClass } from "@/components/ui";
-import { ApiError, api, errorMessage } from "@/lib/api";
+import { API_MODE, ApiError, api, errorMessage } from "@/lib/api";
+import { todayDate } from "@/lib/format/date";
 import { parseAmount } from "@/lib/format/money";
 import { useQuery } from "@/lib/hooks/useQuery";
 
@@ -54,8 +55,7 @@ export default function NewRequestPage() {
           : { customer_id: customerId }),
         description,
         amount: { value: minor.toString(), ...ASSET },
-        // Due at end of the chosen local day.
-        due_at: dueDate ? new Date(`${dueDate}T23:59:59`).toISOString() : null,
+        due_date: dueDate || null,
         allow_partial: allowPartial,
       });
       router.push(`/requests/${created.id}?created=1`);
@@ -159,11 +159,12 @@ export default function NewRequestPage() {
                   className={`${inputClass} tabular-nums`}
                 />
               </Field>
-              <Field label="Due date (optional)" htmlFor="due">
-                <input id="due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={inputClass} />
+              <Field label="Due date (optional)" htmlFor="due" error={errors.due}>
+                <input id="due" type="date" min={todayDate()} value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={inputClass} />
               </Field>
             </div>
 
+            {API_MODE === "mock" && (
             <label className="flex items-start gap-3 rounded-lg border border-line p-4">
               <input
                 type="checkbox"
@@ -178,6 +179,7 @@ export default function NewRequestPage() {
                 </span>
               </span>
             </label>
+            )}
 
             <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
               <Button type="button" variant="secondary" onClick={() => router.push("/requests")} disabled={submitting}>

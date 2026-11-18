@@ -7,9 +7,11 @@ import { Button, Card, Field, inputClass } from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 
 const MIN_PASSWORD = 8;
+const TOO_SHORT = `Use at least ${MIN_PASSWORD} characters.`;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -22,7 +24,8 @@ export default function RegisterPage() {
     if (submitting) return;
     const v: Record<string, string> = {};
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) v.email = "Enter a valid email address.";
-    if (password.length < MIN_PASSWORD) v.password = `Use at least ${MIN_PASSWORD} characters.`;
+    if (!fullName.trim()) v.full_name = "Enter your name.";
+    if (password.length < MIN_PASSWORD) v.password = TOO_SHORT;
     if (confirm !== password) v.confirm = "Passwords don't match.";
     setErrors(v);
     setFormError(null);
@@ -30,7 +33,7 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      await api.register({ email: email.trim(), password });
+      await api.register({ full_name: fullName.trim(), email: email.trim(), password });
       router.replace("/setup");
     } catch (err) {
       if (err instanceof ApiError) setErrors(err.fieldErrors);
@@ -50,6 +53,17 @@ export default function RegisterPage() {
             {formError}
           </p>
         )}
+        <Field label="Your name" htmlFor="full_name" error={errors.full_name}>
+          <input
+            id="full_name"
+            autoComplete="name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            aria-invalid={!!errors.full_name}
+            maxLength={150}
+            className={inputClass}
+          />
+        </Field>
         <Field label="Email" htmlFor="email" error={errors.email}>
           <input
             id="email"

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { Button, Card, Field, inputClass } from "@/components/ui";
 import { API_MODE, ApiError, api, errorMessage } from "@/lib/api";
-import { MOCK_DEMO_ACCOUNT } from "@/lib/api/mock";
+import { signInAsDemo } from "@/lib/api/mock";
 import { getTokens, safeNextPath } from "@/lib/auth/session";
 
 function LoginForm() {
@@ -85,12 +85,12 @@ function LoginForm() {
         <button
           type="button"
           onClick={() => {
-            setEmail(MOCK_DEMO_ACCOUNT.email);
-            setPassword(MOCK_DEMO_ACCOUNT.password);
+            signInAsDemo();
+            router.replace(next);
           }}
           className="mt-3 w-full rounded-lg border border-dashed border-warn/40 px-3 py-2 text-xs text-warn hover:bg-warn-soft"
         >
-          Fill in the demo account (simulated mode only)
+          Open the demo business (simulated mode only)
         </button>
       )}
 

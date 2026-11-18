@@ -95,9 +95,6 @@ function BusinessSwitcher() {
           {business.name}
         </p>
       )}
-      <Link href="/setup" className="text-xs text-white/50 hover:text-white/80">
-        + Add another business
-      </Link>
     </div>
   );
 }

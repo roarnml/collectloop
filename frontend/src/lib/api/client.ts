@@ -39,12 +39,15 @@ export interface PayTrainApi {
   getPaymentRequest(id: string): Promise<PaymentRequest>;
   createPaymentRequest(input: CreatePaymentRequestInput): Promise<PaymentRequest>;
   listCustomers(): Promise<Customer[]>;
+  /** False when the backend has no transaction history endpoint yet. */
+  readonly supportsTransactions: boolean;
   listTransactions(params?: { requestId?: string }): Promise<Transaction[]>;
 
   // Customer (public, no PayTrain account)
   getPublicPaymentRequest(publicUuid: string): Promise<PublicPaymentRequest>;
   startPayment(publicUuid: string, input: StartPaymentInput): Promise<StartPaymentResponse>;
-  getPaymentStatus(paymentId: string): Promise<PaymentStatusResponse>;
+  /** Asks the backend to verify the payment with the provider and report its status. */
+  getPaymentStatus(paymentId: string, publicUuid: string | null): Promise<PaymentStatusResponse>;
 }
 
 /** Display-safe error. `fieldErrors` maps form fields to messages. */
