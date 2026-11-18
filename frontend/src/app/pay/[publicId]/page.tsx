@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 import { Amount, Button, Card, ErrorState, Field, LoadingState, RequestStatusBadge, inputClass } from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
+import { saveHandoff } from "@/lib/payments/handoff";
 import { formatDate } from "@/lib/format/date";
 import { parseAmount, toDecimalString, toMinor } from "@/lib/format/money";
 import { useQuery } from "@/lib/hooks/useQuery";
@@ -52,7 +53,17 @@ function Checkout({ request: r }: { request: PublicPaymentRequest }) {
         window.location.assign(res.redirect_url);
         return; // Keep the button disabled while the browser navigates away.
       }
-      router.push(`/pay/return?payment=${encodeURIComponent(res.payment_id)}`);
+      if (res.next_action_type === "pay_to_url" && res.payment_url) {
+        saveHandoff(res.payment_id, {
+          url: res.payment_url,
+          amount,
+          reference: r.reference,
+          businessName: r.business_name,
+        });
+      }
+      router.push(
+        `/pay/return?payment=${encodeURIComponent(res.payment_id)}&request=${encodeURIComponent(r.public_uuid)}`,
+      );
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors.amount) setAmountError(err.fieldErrors.amount);
       else setError(errorMessage(err));
@@ -78,7 +89,7 @@ function Checkout({ request: r }: { request: PublicPaymentRequest }) {
           <Row label="Reference"><span className="font-mono text-xs">{r.reference}</span></Row>
           <Row label="Total"><Amount value={r.amount} /></Row>
           {toMinor(r.amount_paid) > 0n && <Row label="Already paid"><Amount value={r.amount_paid} /></Row>}
-          <Row label="Due">{formatDate(r.due_at)}</Row>
+          <Row label="Due">{formatDate(r.due_date)}</Row>
           <Row label="Status"><RequestStatusBadge status={r.status} /></Row>
         </dl>
       </Card>
@@ -116,8 +127,8 @@ function Checkout({ request: r }: { request: PublicPaymentRequest }) {
             {!r.allow_partial && amountError && <p className="text-sm text-bad">{amountError}</p>}
 
             <div className="rounded-lg bg-brand-soft p-3 text-sm text-navy">
-              Next, you&apos;ll leave PayTrain and go to your wallet provider to review and approve this payment.
-              You&apos;ll come back here afterwards.
+              Next, you&apos;ll approve this payment with your Open Payments wallet. It&apos;s only marked as paid once
+              the wallet provider confirms the money has arrived.
             </div>
 
             {error && (

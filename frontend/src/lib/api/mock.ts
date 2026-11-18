@@ -17,6 +17,7 @@ import type {
 import { add, money, subtractFloor, toMinor, zero } from "@/lib/format/money";
 import { ApiError, type PayTrainApi } from "./client";
 import { DEFAULT_ASSET } from "@/lib/config";
+import { isPastDue, todayDate } from "@/lib/format/date";
 import { clearSession, getActiveBusinessId, getTokens, setTokens } from "@/lib/auth/session";
 
 /**
@@ -35,10 +36,10 @@ import { clearSession, getActiveBusinessId, getTokens, setTokens } from "@/lib/a
  * text in localStorage. This is NOT real password security; the backend does that.
  */
 
-const STORAGE_KEY = "paytrain.mock.v3"; // v3: users and businesses
+const STORAGE_KEY = "paytrain.mock.v4"; // v4: date-only due dates, user names
 
-/** Synthetic demo login for the mock backend only. Its hash is in the seed below. */
-export const MOCK_DEMO_ACCOUNT = { email: "demo@paytrain.test", password: "demo-pass-2026" } as const;
+/** Synthetic demo user in the seed below. Sign in with `signInAsDemo()`. */
+const DEMO_USER_ID = "usr_1";
 const CURRENCY = DEFAULT_ASSET;
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
 const POLLS_UNTIL_SETTLED = 2;
@@ -66,7 +67,7 @@ interface StoredRequest {
   description: string;
   amount: Money;
   allow_partial: boolean;
-  due_at: string | null;
+  due_date: string | null;
   cancelled: boolean;
   created_at: string;
 }
@@ -106,8 +107,9 @@ function seed(): Store {
   // Demo account for the mock backend (see frontend/README.md).
   const users: StoredUser[] = [
     {
-      id: "usr_1",
+      id: DEMO_USER_ID,
       email: "demo@paytrain.test",
+      full_name: "Demo Owner",
       password_hash: "d06c720638e159e9f297d4198fde6926d4c2e8ced90c6ec5a40e2dc80f0c4fc4",
     },
   ];
@@ -126,22 +128,22 @@ function seed(): Store {
     {
       id: "req_1", public_uuid: "8f1c2a4e-1b7d-4c55-9a51-3e7d0c1f2a01", business_id: "biz_1", reference: "PT-1001",
       customer_id: "cus_1", description: "Wedding photography — deposit and balance",
-      amount: ngn(450_000), allow_partial: true, due_at: daysFromNow(10), cancelled: false, created_at: daysFromNow(-6),
+      amount: ngn(450_000), allow_partial: true, due_date: todayDate(10), cancelled: false, created_at: daysFromNow(-6),
     },
     {
       id: "req_2", public_uuid: "2b9e7f10-6c3a-4f2e-8d4b-5a6c7d8e9f02", business_id: "biz_1", reference: "PT-1002",
       customer_id: "cus_2", description: "Maths tutoring — November (8 sessions)",
-      amount: ngn(80_000), allow_partial: false, due_at: daysFromNow(-2), cancelled: false, created_at: daysFromNow(-12),
+      amount: ngn(80_000), allow_partial: false, due_date: todayDate(-2), cancelled: false, created_at: daysFromNow(-12),
     },
     {
       id: "req_3", public_uuid: "c4d5e6f7-0a1b-4c2d-9e3f-4a5b6c7d8e03", business_id: "biz_1", reference: "PT-1003",
       customer_id: "cus_3", description: "Laptop screen replacement",
-      amount: ngn(65_000), allow_partial: false, due_at: daysFromNow(-3), cancelled: false, created_at: daysFromNow(-9),
+      amount: ngn(65_000), allow_partial: false, due_date: todayDate(-3), cancelled: false, created_at: daysFromNow(-9),
     },
     {
       id: "req_4", public_uuid: "e1f2a3b4-5c6d-4e7f-8a9b-0c1d2e3f4a04", business_id: "biz_1", reference: "PT-1004",
       customer_id: "cus_1", description: "Event booth styling — Saturday market",
-      amount: ngn(200_000), allow_partial: true, due_at: daysFromNow(5), cancelled: false, created_at: daysFromNow(-1),
+      amount: ngn(200_000), allow_partial: true, due_date: todayDate(5), cancelled: false, created_at: daysFromNow(-1),
     },
   ];
   const settled = (id: string, request_id: string, amount: Money, daysAgo: number): StoredPayment => ({
@@ -179,6 +181,11 @@ function save(store: Store) {
   } catch {
     // Storage unavailable (private mode); data lives for this page only.
   }
+}
+
+/** Simulated mode only: sign in to the seeded demo business without a password. */
+export function signInAsDemo() {
+  issueTokens(load(), DEMO_USER_ID);
 }
 
 export function resetMockData() {
@@ -249,7 +256,7 @@ function requestStatus(req: StoredRequest, paid: Money): PaymentRequestStatus {
   if (req.cancelled) return "cancelled";
   const outstanding = subtractFloor(req.amount, paid);
   if (toMinor(outstanding) === 0n) return "paid";
-  if (req.due_at && new Date(req.due_at).getTime() < Date.now()) return "overdue";
+  if (isPastDue(req.due_date)) return "overdue";
   if (toMinor(paid) > 0n) return "partially_paid";
   return "open";
 }
@@ -268,7 +275,7 @@ function toDto(store: Store, req: StoredRequest): PaymentRequest {
     amount_paid: paid,
     outstanding_amount: subtractFloor(req.amount, paid),
     allow_partial: req.allow_partial,
-    due_at: req.due_at,
+    due_date: req.due_date,
     status: requestStatus(req, paid),
     created_at: req.created_at,
     is_simulated: true,
@@ -281,7 +288,7 @@ function toPublicDto(store: Store, req: StoredRequest): PublicPaymentRequest {
     public_uuid: d.public_uuid, reference: d.reference, business_name: d.business_name,
     description: d.description, amount: d.amount, amount_paid: d.amount_paid,
     outstanding_amount: d.outstanding_amount, allow_partial: d.allow_partial,
-    due_at: d.due_at, status: d.status, is_simulated: true,
+    due_date: d.due_date, status: d.status, is_simulated: true,
   };
 }
 
@@ -337,7 +344,7 @@ function statusDto(store: Store, p: StoredPayment): PaymentStatusResponse {
   return {
     payment_id: p.id, request_public_uuid: req.public_uuid, request_reference: req.reference,
     business_name: businessName(store, req.business_id), status: p.status, amount: p.amount, verified_at: p.verified_at,
-    failure_message: p.failure_message, is_simulated: true,
+    failure_message: p.failure_message, status_message: null, is_simulated: true,
   };
 }
 
@@ -347,6 +354,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const mockApi: PayTrainApi = {
   mode: "mock",
+  supportsTransactions: true,
 
   async register(input) {
     await latency();
@@ -358,7 +366,14 @@ export const mockApi: PayTrainApi = {
     if (input.password.length < 8) fieldErrors.password = "Use at least 8 characters.";
     if (Object.keys(fieldErrors).length) throw new ApiError("Please fix the highlighted fields.", 400, fieldErrors);
 
-    const user: StoredUser = { id: `usr_${uuid().slice(0, 8)}`, email, password_hash: await hashPassword(input.password) };
+    if (!input.full_name.trim()) fieldErrors.full_name = "Enter your name.";
+    if (Object.keys(fieldErrors).length) throw new ApiError("Please fix the highlighted fields.", 400, fieldErrors);
+    const user: StoredUser = {
+      id: `usr_${uuid().slice(0, 8)}`,
+      email,
+      full_name: input.full_name.trim(),
+      password_hash: await hashPassword(input.password),
+    };
     store.users.push(user);
     issueTokens(store, user.id);
   },
@@ -388,7 +403,7 @@ export const mockApi: PayTrainApi = {
   async getCurrentUser() {
     await latency();
     const u = requireUser(load());
-    return { id: u.id, email: u.email };
+    return { id: u.id, email: u.email, full_name: u.full_name };
   },
 
   async listBusinesses() {
@@ -433,7 +448,7 @@ export const mockApi: PayTrainApi = {
       collected_total: dtos.reduce((s, d) => add(s, d.amount_paid), z),
       outstanding_total: dtos.filter((d) => d.status !== "cancelled").reduce((s, d) => add(s, d.outstanding_amount), z),
       overdue_total: dtos.filter((d) => d.status === "overdue").reduce((s, d) => add(s, d.outstanding_amount), z),
-      successful_count: ownPayments.filter((p) => p.status === "succeeded").length,
+      paid_request_count: dtos.filter((d) => d.status === "paid").length,
       pending_count: ownPayments.filter((p) => p.status === "processing" || p.status === "awaiting_authorization").length,
       recent_requests: [...dtos].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5),
     };
@@ -492,7 +507,7 @@ export const mockApi: PayTrainApi = {
       description: input.description.trim(),
       amount: { ...input.amount, assetCode: CURRENCY.assetCode, assetScale: CURRENCY.assetScale },
       allow_partial: input.allow_partial,
-      due_at: input.due_at,
+      due_date: input.due_date,
       cancelled: false,
       created_at: new Date().toISOString(),
     };
@@ -576,6 +591,7 @@ function startResponse(p: StoredPayment): StartPaymentResponse {
     status: p.status,
     next_action_type: p.status === "awaiting_authorization" ? "redirect" : "none",
     redirect_url: p.status === "awaiting_authorization" ? `/pay/mock-provider?payment=${encodeURIComponent(p.id)}` : null,
+    payment_url: null,
     expires_at: new Date(new Date(p.created_at).getTime() + AUTH_WINDOW_MS).toISOString(),
     is_simulated: true,
   };

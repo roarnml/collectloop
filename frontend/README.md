@@ -17,11 +17,24 @@ Open http://localhost:3000.
 | `NEXT_PUBLIC_API_MODE` | Behaviour |
 |---|---|
 | `mock` (default) | Simulated backend in `src/lib/api/mock.ts`, stored in browser localStorage. Every screen shows a "Simulated mode" banner, and simulated payments are labelled as such. |
-| `live` | Calls the Django API at `NEXT_PUBLIC_API_BASE_URL` via `src/lib/api/live.ts`. |
+| `live` | Calls the Django API in `backend/` at `NEXT_PUBLIC_API_BASE_URL` (e.g. `https://<railway-host>/api`) via `src/lib/api/live.ts`. |
 
-The live routes are the **proposed** contract from the PayTrain foundational
-guide (section 6). Align `src/lib/api/live.ts` and `src/lib/types` with the
-backend's published OpenAPI schema before switching to live.
+`src/lib/api/live.ts` translates the backend's shapes to the frontend types:
+2-decimal money strings ↔ integer minor units, `public_id`/`due_date`/
+`full_name` field names, `pending` → open/overdue, and customer/business names
+joined from their own endpoints. The backend must list the frontend's origin
+in `CORS_ALLOWED_ORIGINS`.
+
+### Live payment flow
+
+1. Customer chooses an amount; the frontend POSTs `.../attempts/` with a UUID `Idempotency-Key`.
+2. The backend creates an Open Payments incoming payment and returns its URL.
+3. `/pay/return` shows that URL; the customer pays it from their own Open Payments wallet.
+4. The page POSTs `.../verify/` every 5s (up to 5 minutes, then on demand). It shows "confirmed" only when the backend reports `succeeded`.
+
+Not available from the API yet: per-payment history (request detail says so),
+customer-side grants/quotes/outgoing payments, and a dashboard summary
+endpoint (the frontend totals the request list).
 
 ## Routes
 
@@ -48,14 +61,13 @@ backend's published OpenAPI schema before switching to live.
 
 - `AuthProvider` wraps the dashboard. Signed-out visitors go to `/login?next=…`
   and come back after signing in; owners with no business go to `/setup`.
-- Owners can switch business from the sidebar; data reloads for that business.
+- The backend allows one business per owner.
 - Tokens live in localStorage via `src/lib/auth/session.ts` (the one place to
   change). Better for production: the backend sets the refresh token as an
   httpOnly cookie. The live client refreshes the access token once on a 401.
 - Route protection here is UX only. The backend must reject unauthenticated
   and cross-business requests.
-- Mock mode has a synthetic demo account (`MOCK_DEMO_ACCOUNT` in
-  `src/lib/api/mock.ts`); the login page has a button that fills it in.
+- In mock mode the login page has a button that opens the seeded demo business.
 
 ## Not built yet
 
@@ -63,6 +75,6 @@ Customers, transactions, reconciliation and settings pages.
 
 ## Currency
 
-Amounts are in Nigerian naira (NGN, scale 2 = kobo), set in `src/lib/config.ts`.
-Confirm during onboarding that the approved Open Payments test wallet supports
-NGN; once the backend returns the business wallet's asset, use that instead.
+New requests use `NEXT_PUBLIC_DEFAULT_CURRENCY` (default NGN, scale 2 = kobo),
+set in `src/lib/config.ts`. In live mode it must match the business wallet's
+asset, or the backend rejects payment attempts with a currency mismatch.

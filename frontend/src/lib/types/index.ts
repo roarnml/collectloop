@@ -48,6 +48,7 @@ export const TERMINAL_PAYMENT_STATUSES: readonly PaymentStatus[] = [
 export interface User {
   id: string;
   email: string;
+  full_name: string;
 }
 
 /** Simple JWT pair. PROVISIONAL: confirm field names with the backend. */
@@ -61,7 +62,9 @@ export interface LoginInput {
   password: string;
 }
 
-export type RegisterInput = LoginInput;
+export interface RegisterInput extends LoginInput {
+  full_name: string;
+}
 
 export interface Business {
   id: string;
@@ -104,7 +107,8 @@ export interface PaymentRequest {
   amount_paid: Money;
   outstanding_amount: Money;
   allow_partial: boolean;
-  due_at: string | null;
+  /** Local calendar date, "YYYY-MM-DD". */
+  due_date: string | null;
   status: PaymentRequestStatus;
   created_at: string;
   /** True when this record comes from mock data, not the real backend. */
@@ -121,7 +125,8 @@ export interface PublicPaymentRequest {
   amount_paid: Money;
   outstanding_amount: Money;
   allow_partial: boolean;
-  due_at: string | null;
+  /** Local calendar date, "YYYY-MM-DD". */
+  due_date: string | null;
   status: PaymentRequestStatus;
   is_simulated: boolean;
 }
@@ -132,7 +137,8 @@ export interface CreatePaymentRequestInput {
   new_customer?: { name: string; email?: string; phone?: string };
   description: string;
   amount: Money;
-  due_at: string | null;
+  /** Local calendar date, "YYYY-MM-DD". */
+  due_date: string | null;
   allow_partial: boolean;
 }
 
@@ -146,9 +152,14 @@ export interface StartPaymentInput {
 export interface StartPaymentResponse {
   payment_id: string;
   status: PaymentStatus;
-  next_action_type: "redirect" | "none";
-  /** Short-lived URL for the wallet/provider authorisation step. */
+  /**
+   * redirect: send the customer to `redirect_url` (wallet consent screen).
+   * pay_to_url: the customer pays `payment_url` (an Open Payments
+   *   incoming-payment URL) from their own wallet, then PayTrain verifies it.
+   */
+  next_action_type: "redirect" | "pay_to_url" | "none";
   redirect_url: string | null;
+  payment_url: string | null;
   expires_at: string | null;
   is_simulated: boolean;
 }
@@ -163,6 +174,8 @@ export interface PaymentStatusResponse {
   amount: Money;
   verified_at: string | null;
   failure_message: string | null;
+  /** Extra provider detail for non-final states, e.g. partly received. */
+  status_message: string | null;
   is_simulated: boolean;
 }
 
@@ -184,7 +197,8 @@ export interface DashboardSummary {
   collected_total: Money;
   outstanding_total: Money;
   overdue_total: Money;
-  successful_count: number;
-  pending_count: number;
+  paid_request_count: number;
+  /** Null when the backend can't report it. */
+  pending_count: number | null;
   recent_requests: PaymentRequest[];
 }

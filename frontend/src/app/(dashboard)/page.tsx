@@ -37,7 +37,7 @@ export default function DashboardPage() {
             <Kpi label="Collected" value={q.data.collected_total} />
             <Kpi label="Outstanding" value={q.data.outstanding_total} />
             <Kpi label="Overdue" value={q.data.overdue_total} tone={toMinor(q.data.overdue_total) > 0n ? "danger" : undefined} />
-            <Kpi label="Successful payments" count={q.data.successful_count} />
+            <Kpi label="Paid in full" count={q.data.paid_request_count} />
           </div>
 
           {toMinor(q.data.overdue_total) > 0n && (
@@ -51,7 +51,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {q.data.pending_count > 0 && (
+          {!!q.data.pending_count && (
             <p className="text-sm text-muted">
               {q.data.pending_count} payment{q.data.pending_count === 1 ? " is" : "s are"} still being verified.
             </p>

@@ -33,7 +33,7 @@ export function RequestList({ requests }: { requests: PaymentRequest[] }) {
               <td className="max-w-64 truncate px-5 py-3.5 text-muted">{r.description}</td>
               <td className="px-5 py-3.5 text-right"><Amount value={r.amount} /></td>
               <td className="px-5 py-3.5 text-right font-medium"><Amount value={r.outstanding_amount} /></td>
-              <td className="whitespace-nowrap px-5 py-3.5 text-muted">{formatDate(r.due_at)}</td>
+              <td className="whitespace-nowrap px-5 py-3.5 text-muted">{formatDate(r.due_date)}</td>
               <td className="px-5 py-3.5"><RequestStatusBadge status={r.status} /></td>
             </tr>
           ))}
@@ -52,7 +52,7 @@ export function RequestList({ requests }: { requests: PaymentRequest[] }) {
                 <RequestStatusBadge status={r.status} />
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="font-mono text-xs text-muted">{r.reference} · {formatDate(r.due_at)}</span>
+                <span className="font-mono text-xs text-muted">{r.reference} · {formatDate(r.due_date)}</span>
                 <span>
                   <span className="text-muted">Owed </span>
                   <Amount value={r.outstanding_amount} className="font-semibold" />
