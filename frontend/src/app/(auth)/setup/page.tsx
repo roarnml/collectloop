@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
-import { Button, Card, Field, LoadingState, inputClass } from "@/components/ui";
+import { Button, Card, ErrorAlert, Field, LoadingState, inputClass } from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 import { setActiveBusinessId } from "@/lib/auth/session";
 
@@ -39,6 +39,13 @@ function SetupForm() {
         description: description.trim() || undefined,
       });
       setActiveBusinessId(biz.id);
+      // Next.js keeps this page alive in the background and restores its state
+      // on a later visit, so reset it instead of leaving it mid-submit.
+      setName("");
+      setEmail("");
+      setPhone("");
+      setDescription("");
+      setSubmitting(false);
       router.replace("/");
     } catch (err) {
       if (err instanceof ApiError) setErrors(err.fieldErrors);
@@ -56,9 +63,7 @@ function SetupForm() {
 
       <form onSubmit={onSubmit} noValidate className="mt-6 flex flex-col gap-4">
         {formError && (
-          <p role="alert" className="rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">
-            {formError}
-          </p>
+          <ErrorAlert>{formError}</ErrorAlert>
         )}
         <Field label="Business name" htmlFor="name" error={errors.name}>
           <input

@@ -61,6 +61,27 @@ export function clearSession() {
   setActiveBusinessId(null);
 }
 
+const SESSION_ENDED = "paytrain:session-ended";
+
+/** Tell the app the backend rejected our session (expired or revoked tokens). */
+export function notifySessionEnded() {
+  clearSession();
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(SESSION_ENDED));
+}
+
+export function onSessionEnded(handler: () => void): () => void {
+  window.addEventListener(SESSION_ENDED, handler);
+  return () => window.removeEventListener(SESSION_ENDED, handler);
+}
+
+/** Login URL that returns the user to the current page afterwards. */
+export function loginUrl(reason?: "expired" | "unreachable"): string {
+  const here = window.location.pathname + window.location.search;
+  const params = new URLSearchParams({ next: here });
+  if (reason) params.set("reason", reason);
+  return `/login?${params.toString()}`;
+}
+
 /** Only allow same-site relative paths as a post-login destination. */
 export function safeNextPath(next: string | null | undefined): string {
   if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return "/";

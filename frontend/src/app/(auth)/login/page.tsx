@@ -3,22 +3,35 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
-import { Button, Card, Field, inputClass } from "@/components/ui";
+import { Button, Card, ErrorAlert, Field, inputClass } from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
-import { getTokens, safeNextPath } from "@/lib/auth/session";
+import { clearSession, getTokens, safeNextPath } from "@/lib/auth/session";
 
 function LoginForm() {
   const router = useRouter();
-  const next = safeNextPath(useSearchParams().get("next"));
+  const params = useSearchParams();
+  const next = safeNextPath(params.get("next"));
+  const reason = params.get("reason");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Already signed in: skip the form.
+  // Skip the form only if the stored session still works.
   useEffect(() => {
-    if (getTokens()) router.replace(next);
+    if (!getTokens()) return;
+    let active = true;
+    api.getCurrentUser().then(
+      () => active && router.replace(next),
+      (err: unknown) => {
+        // Rejected tokens are useless; keep them if the server just couldn't be reached.
+        if (err instanceof ApiError && err.status === 401) clearSession();
+      },
+    );
+    return () => {
+      active = false;
+    };
   }, [router, next]);
 
   async function onSubmit(e: FormEvent) {
@@ -34,6 +47,10 @@ function LoginForm() {
     setSubmitting(true);
     try {
       await api.login({ email: email.trim(), password });
+      // Next.js keeps this page alive in the background and restores its state
+      // on a later visit, so reset it instead of leaving it mid-submit.
+      setPassword("");
+      setSubmitting(false);
       router.replace(next);
     } catch (err) {
       if (err instanceof ApiError) setErrors(err.fieldErrors);
@@ -47,12 +64,19 @@ function LoginForm() {
       <h1 className="text-xl font-semibold text-ink">Sign in</h1>
       <p className="mt-1 text-sm text-muted">Manage your payment requests and balances.</p>
 
+      {!formError && reason === "expired" && (
+        <p role="status" className="mt-4 rounded-lg bg-info-soft px-3 py-2.5 text-sm text-info">
+          Your session has ended. Sign in again to continue.
+        </p>
+      )}
+      {!formError && reason === "unreachable" && (
+        <div className="mt-4">
+          <ErrorAlert error={new TypeError("fetch failed")} />
+        </div>
+      )}
+
       <form onSubmit={onSubmit} noValidate className="mt-6 flex flex-col gap-4">
-        {formError && (
-          <p role="alert" className="rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">
-            {formError}
-          </p>
-        )}
+        {formError && <ErrorAlert>{formError}</ErrorAlert>}
         <Field label="Email" htmlFor="email" error={errors.email}>
           <input
             id="email"
