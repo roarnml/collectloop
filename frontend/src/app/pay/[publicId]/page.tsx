@@ -63,6 +63,11 @@ function Checkout({ request: r }: { request: PublicPaymentRequest }) {
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors.amount) setAmountError(err.fieldErrors.amount);
       else setError(errorMessage(err));
+      // Keep the key only when retrying can finish the same attempt (503 or no
+      // response). After a final rejection the next try is a new attempt.
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        setIdempotencyKey(crypto.randomUUID());
+      }
       setSubmitting(false);
     }
   }

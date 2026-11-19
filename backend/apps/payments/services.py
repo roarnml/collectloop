@@ -1,8 +1,9 @@
 
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -11,6 +12,52 @@ from .models import PaymentTransaction
 
 
 ZERO = Decimal("0.00")
+
+# How long a new attempt may wait for its Open Payments incoming payment to be
+# created. Past this, an attempt with no incoming-payment URL can never be
+# paid, so it stops reserving balance and is marked failed.
+PROVISION_GRACE = timedelta(minutes=2)
+
+PROVISIONING_FAILED_REASON = "Payment setup did not complete. Please start a new payment."
+
+
+def _reserving_pending(payment_request, exclude_id=None):
+    """
+    Pending attempts that still hold part of the outstanding balance.
+
+    An attempt reserves balance while it is pending and either has an
+    incoming-payment resource (the payer can still pay it) or is still within
+    PROVISION_GRACE (setup may be in flight or being retried).
+    """
+    cutoff = timezone.now() - PROVISION_GRACE
+    queryset = PaymentTransaction.objects.filter(
+        payment_request=payment_request,
+        status=PaymentTransaction.Status.PENDING,
+    ).exclude(Q(incoming_payment_url="") & Q(created_at__lt=cutoff))
+
+    if exclude_id is not None:
+        queryset = queryset.exclude(id=exclude_id)
+
+    return queryset
+
+
+def release_stale_attempts(payment_request):
+    """
+    Fail pending attempts whose incoming payment was never created.
+
+    Call while holding the payment request lock. Returns the number released.
+    """
+    cutoff = timezone.now() - PROVISION_GRACE
+    return PaymentTransaction.objects.filter(
+        payment_request=payment_request,
+        status=PaymentTransaction.Status.PENDING,
+        incoming_payment_url="",
+        created_at__lt=cutoff,
+    ).update(
+        status=PaymentTransaction.Status.FAILED,
+        provider_status="provisioning_failed",
+        failure_reason=PROVISIONING_FAILED_REASON,
+    )
 
 
 def _normalise_amount(value):
@@ -89,6 +136,9 @@ def create_payment_attempt(payment_public_id, amount, idempotency_key):
     if not payment_request:
         raise ValidationError("Payment request not found.")
 
+    # Attempts whose setup never completed must not keep blocking the balance.
+    release_stale_attempts(payment_request)
+
     # An idempotent retry should return the original transaction.
     existing = PaymentTransaction.objects.filter(
         idempotency_key=idempotency_key
@@ -116,13 +166,9 @@ def create_payment_attempt(payment_public_id, amount, idempotency_key):
 
     outstanding = payment_request.outstanding_amount
 
-    # Pending transactions reserve part of the outstanding balance.
+    # Pending transactions that can still be paid reserve part of the balance.
     pending_total = (
-        PaymentTransaction.objects
-        .filter(
-            payment_request=payment_request,
-            status=PaymentTransaction.Status.PENDING,
-        )
+        _reserving_pending(payment_request)
         .aggregate(total=Sum("amount"))["total"]
         or ZERO
     )
@@ -211,12 +257,7 @@ def mark_transaction_succeeded(
     outstanding = request.outstanding_amount
 
     other_pending_total = (
-        PaymentTransaction.objects
-        .filter(
-            payment_request=request,
-            status=PaymentTransaction.Status.PENDING,
-        )
-        .exclude(id=payment.id)
+        _reserving_pending(request, exclude_id=payment.id)
         .aggregate(total=Sum("amount"))["total"]
         or ZERO
     )
