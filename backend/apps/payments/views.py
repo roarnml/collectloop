@@ -26,7 +26,7 @@ from .serializers import (
     PaymentAttemptSerializer,
     CreatePaymentAttemptSerializer,
 )
-from .services import create_payment_attempt
+from .services import create_payment_attempt, mark_transaction_failed
 
 
 class PublicPaymentRequestView(APIView):
@@ -73,10 +73,51 @@ class PaymentInitiationView(APIView):
             idempotency_key=key,
         )
 
+        # A retry with the key of an attempt that has already finished.
+        if payment.status == PaymentTransaction.Status.SUCCEEDED:
+            return Response(
+                {
+                    "message": "This payment has already been completed.",
+                    "payment": PaymentAttemptSerializer(payment).data,
+                    "incoming_payment_url": payment.incoming_payment_url,
+                    "next_step": "none",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if payment.status != PaymentTransaction.Status.PENDING:
+            return Response(
+                {
+                    "detail": (
+                        payment.failure_reason
+                        or "This payment attempt can no longer be completed. "
+                        "Please start a new payment."
+                    ),
+                    "payment": PaymentAttemptSerializer(payment).data,
+                    "next_step": "start_new_attempt",
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         try:
             incoming_payment_url = provision_incoming_payment(payment)
 
+        except ValidationError as exc:
+            # Not retryable (e.g. currency mismatch): fail the attempt so it
+            # stops reserving part of the outstanding balance.
+            detail = exc.detail
+            reason = str(detail[0] if isinstance(detail, list) and detail else detail)
+            mark_transaction_failed(
+                payment.id,
+                reason=reason,
+                provider_status="provisioning_failed",
+            )
+            raise
+
         except OpenPaymentsAdapterError:
+            # Possibly temporary: keep the attempt so a retry with the same
+            # Idempotency-Key can finish setup. If setup never completes,
+            # services.release_stale_attempts frees its reserved balance.
             return Response(
                 {
                     "message": (
@@ -116,6 +157,24 @@ class PaymentVerificationView(APIView):
             PaymentTransaction,
             idempotency_key=transaction_key,
         )
+
+        # Finished attempts need no provider call (and a failed one may have
+        # no incoming-payment resource at all).
+        if payment.status in [
+            PaymentTransaction.Status.FAILED,
+            PaymentTransaction.Status.CANCELLED,
+        ]:
+            return Response(
+                {
+                    "message": payment.failure_reason or "This payment did not complete.",
+                    "verification": {
+                        "status": payment.status,
+                        "message": payment.failure_reason or "This payment did not complete.",
+                    },
+                    "transaction": PaymentAttemptSerializer(payment).data,
+                },
+                status=status.HTTP_200_OK,
+            )
 
         try:
             result = inspect_incoming_payment(payment)
