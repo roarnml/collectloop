@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
-import { Amount, Button, Card, ErrorState, Field, LoadingState, RequestStatusBadge, inputClass } from "@/components/ui";
+import { Amount, Button, Card, ErrorAlert, ErrorState, Field, LoadingState, RequestStatusBadge, inputClass } from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 import { saveHandoff } from "@/lib/payments/handoff";
 import { formatDate } from "@/lib/format/date";
@@ -53,6 +53,10 @@ function Checkout({ request: r }: { request: PublicPaymentRequest }) {
           businessName: r.business_name,
         });
       }
+      // This page may be restored later (e.g. "Back to payment request"): leave it
+      // ready for a new attempt with a fresh idempotency key.
+      setSubmitting(false);
+      setIdempotencyKey(crypto.randomUUID());
       router.push(
         `/pay/return?payment=${encodeURIComponent(res.payment_id)}&request=${encodeURIComponent(r.public_uuid)}`,
       );
@@ -121,9 +125,7 @@ function Checkout({ request: r }: { request: PublicPaymentRequest }) {
             </div>
 
             {error && (
-              <p role="alert" className="rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">
-                {error}
-              </p>
+              <ErrorAlert>{error}</ErrorAlert>
             )}
 
             <Button type="submit" loading={submitting} className="w-full py-3 text-base">

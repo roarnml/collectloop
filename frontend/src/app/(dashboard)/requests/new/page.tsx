@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Button, Card, ErrorState, Field, LoadingState, PageHeader, inputClass } from "@/components/ui";
+import { Button, Card, ErrorAlert, ErrorState, Field, LoadingState, PageHeader, inputClass } from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 import { todayDate } from "@/lib/format/date";
 import { parseAmount } from "@/lib/format/money";
@@ -56,6 +56,16 @@ export default function NewRequestPage() {
         amount: { value: minor.toString(), ...ASSET },
         due_date: dueDate || null,
       });
+      // Next.js keeps this page alive in the background and restores its state
+      // on a later visit, so clear it for the next request.
+      setCustomerId("");
+      setNewName("");
+      setNewEmail("");
+      setDescription("");
+      setAmount("");
+      setDueDate("");
+      setErrors({});
+      setSubmitting(false);
       router.push(`/requests/${created.id}?created=1`);
     } catch (err) {
       if (err instanceof ApiError) setErrors(err.fieldErrors);
@@ -79,9 +89,7 @@ export default function NewRequestPage() {
         <Card className="p-5 sm:p-6">
           <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
             {formError && (
-              <p role="alert" className="rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">
-                {formError}
-              </p>
+              <ErrorAlert>{formError}</ErrorAlert>
             )}
 
             <Field label="Customer" htmlFor="customer" error={errors.customer}>

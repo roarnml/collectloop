@@ -2,14 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { ErrorState } from "@/components/ui";
 import { api, isUnauthorized } from "@/lib/api";
-import { getActiveBusinessId, getTokens, setActiveBusinessId } from "@/lib/auth/session";
+import { getActiveBusinessId, getTokens, loginUrl, onSessionEnded, setActiveBusinessId } from "@/lib/auth/session";
 import type { Business, User } from "@/lib/types";
 
 type AuthState =
   | { status: "loading" }
-  | { status: "error"; error: unknown }
   | { status: "ready"; user: User; businesses: Business[]; businessId: string | null };
 
 export interface AuthContextValue {
@@ -37,14 +35,11 @@ export function useOptionalAuth(): AuthContextValue | null {
   return useContext(AuthContext);
 }
 
-function loginUrl() {
-  const here = window.location.pathname + window.location.search;
-  return `/login?next=${encodeURIComponent(here)}`;
-}
-
 /**
- * Gate for signed-in pages. Sends signed-out visitors to /login (and back
- * afterwards), and owners without a business to /setup.
+ * Gate for signed-in pages. Sends anyone without a confirmed session to
+ * /login (and back afterwards): no tokens, rejected tokens, a session that
+ * ends mid-use, or a session that can't be checked because the server is
+ * unreachable. Owners without a business go to /setup.
  *
  * Children render immediately (in their loading state) so layouts and
  * navigation stay instant; data hooks wait for `ready` before fetching.
@@ -61,7 +56,9 @@ export function AuthProvider({
 }) {
   const router = useRouter();
   const [state, setState] = useState<AuthState>({ status: "loading" });
-  const [attempt, setAttempt] = useState(0);
+
+  // Any API call that comes back 401 after a refresh attempt ends the session.
+  useEffect(() => onSessionEnded(() => router.replace(loginUrl("expired"))), [router]);
 
   useEffect(() => {
     if (!getTokens()) {
@@ -83,14 +80,14 @@ export function AuthProvider({
       },
       (error: unknown) => {
         if (!active) return;
-        if (isUnauthorized(error)) router.replace(loginUrl());
-        else setState({ status: "error", error });
+        // Couldn't confirm the session: treat as signed out. The login page explains why.
+        router.replace(loginUrl(isUnauthorized(error) ? "expired" : "unreachable"));
       },
     );
     return () => {
       active = false;
     };
-  }, [router, requireBusiness, attempt]);
+  }, [router, requireBusiness]);
 
   const selectBusiness = useCallback((id: string) => {
     setActiveBusinessId(id);
@@ -115,19 +112,7 @@ export function AuthProvider({
 
   return (
     <AuthContext.Provider value={value}>
-      {state.status === "error" ? (
-        <div className="mx-auto max-w-md px-4 py-16">
-          <ErrorState
-            error={state.error}
-            onRetry={() => {
-              setState({ status: "loading" });
-              setAttempt((n) => n + 1);
-            }}
-          />
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </AuthContext.Provider>
   );
 }

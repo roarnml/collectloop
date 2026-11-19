@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Button, Card, Field, inputClass } from "@/components/ui";
+import { Button, Card, ErrorAlert, Field, inputClass } from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 
 const MIN_PASSWORD = 8;
@@ -34,6 +34,11 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       await api.register({ full_name: fullName.trim(), email: email.trim(), password });
+      // Next.js keeps this page alive in the background and restores its state
+      // on a later visit, so reset it instead of leaving it mid-submit.
+      setPassword("");
+      setConfirm("");
+      setSubmitting(false);
       router.replace("/setup");
     } catch (err) {
       if (err instanceof ApiError) setErrors(err.fieldErrors);
@@ -49,9 +54,7 @@ export default function RegisterPage() {
 
       <form onSubmit={onSubmit} noValidate className="mt-6 flex flex-col gap-4">
         {formError && (
-          <p role="alert" className="rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">
-            {formError}
-          </p>
+          <ErrorAlert>{formError}</ErrorAlert>
         )}
         <Field label="Your name" htmlFor="full_name" error={errors.full_name}>
           <input

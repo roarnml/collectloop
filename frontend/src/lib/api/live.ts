@@ -15,7 +15,7 @@ import type {
   StartPaymentResponse,
   User,
 } from "@/lib/types";
-import { clearSession, getTokens, setTokens } from "@/lib/auth/session";
+import { clearSession, getTokens, notifySessionEnded, setTokens } from "@/lib/auth/session";
 import { DEFAULT_ASSET } from "@/lib/config";
 import { isPastDue } from "@/lib/format/date";
 import { add, parseAmount, toDecimalString, zero } from "@/lib/format/money";
@@ -260,7 +260,7 @@ async function request<T>(path: string, init: RequestOptions = {}): Promise<T> {
   if (res.status === 401 && init.auth !== false) {
     if (await refreshAccessToken()) res = await send(path, init);
     if (res.status === 401) {
-      clearSession();
+      notifySessionEnded();
       throw new ApiError("Your session has ended. Please sign in again.", 401);
     }
   }
