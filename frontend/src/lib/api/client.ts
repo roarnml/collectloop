@@ -1,6 +1,7 @@
 import type {
   Business,
   CreateBusinessInput,
+  CreateCustomerInput,
   CreatePaymentRequestInput,
   Customer,
   DashboardSummary,
@@ -32,6 +33,8 @@ export interface PayTrainApi {
   getPaymentRequest(id: string): Promise<PaymentRequest>;
   createPaymentRequest(input: CreatePaymentRequestInput): Promise<PaymentRequest>;
   listCustomers(): Promise<Customer[]>;
+  getCustomer(id: string): Promise<Customer>;
+  createCustomer(input: CreateCustomerInput): Promise<Customer>;
 
   // Customer (public, no PayTrain account)
   getPublicPaymentRequest(publicUuid: string): Promise<PublicPaymentRequest>;

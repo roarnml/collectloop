@@ -119,6 +119,12 @@ export interface PublicPaymentRequest {
   status: PaymentRequestStatus;
 }
 
+export interface CreateCustomerInput {
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
 export interface CreatePaymentRequestInput {
   /** Use an existing customer, or create one inline via `new_customer`. */
   customer_id?: string;

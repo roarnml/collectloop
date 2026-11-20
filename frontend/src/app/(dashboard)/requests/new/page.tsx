@@ -1,9 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
-import { Button, Card, ErrorAlert, ErrorState, Field, LoadingState, PageHeader, inputClass } from "@/components/ui";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
+import {
+  Button,
+  Card,
+  ErrorAlert,
+  ErrorState,
+  Field,
+  FormSkeleton,
+  PageHeader,
+  inputClass,
+} from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 import { todayDate } from "@/lib/format/date";
 import { parseAmount } from "@/lib/format/money";
@@ -12,11 +21,11 @@ import { useQuery } from "@/lib/hooks/useQuery";
 import { DEFAULT_ASSET as ASSET } from "@/lib/config";
 const NEW = "__new__";
 
-export default function NewRequestPage() {
+function NewRequestForm({ initialCustomer }: { initialCustomer: string }) {
   const router = useRouter();
   const customers = useQuery(() => api.listCustomers(), []);
 
-  const [customerId, setCustomerId] = useState("");
+  const [customerId, setCustomerId] = useState(initialCustomer);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [description, setDescription] = useState("");
@@ -83,7 +92,7 @@ export default function NewRequestPage() {
         <PageHeader title="Create payment request" subtitle="You'll get a link to share with your customer." />
       </div>
 
-      {customers.status === "loading" && <LoadingState />}
+      {customers.status === "loading" && <FormSkeleton fields={4} label="Loading customers…" />}
       {customers.status === "error" && <ErrorState error={customers.error} onRetry={customers.reload} />}
       {customers.status === "success" && (
         <Card className="p-5 sm:p-6">
@@ -183,5 +192,20 @@ export default function NewRequestPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+function NewRequestWithParams() {
+  // ?customer=<id> pre-selects a customer (from the customer page). Keyed so a
+  // restored page picks up a different customer.
+  const initialCustomer = useSearchParams().get("customer") ?? "";
+  return <NewRequestForm key={initialCustomer} initialCustomer={initialCustomer} />;
+}
+
+export default function NewRequestPage() {
+  return (
+    <Suspense fallback={<FormSkeleton fields={4} label="Loading customers…" />}>
+      <NewRequestWithParams />
+    </Suspense>
   );
 }

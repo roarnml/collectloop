@@ -2,6 +2,7 @@ import type {
   AuthTokens,
   Business,
   CreateBusinessInput,
+  CreateCustomerInput,
   CreatePaymentRequestInput,
   Customer,
   DashboardSummary,
@@ -452,6 +453,29 @@ export const liveApi: PayTrainApi = {
       return mapRequest(row, l.customers, l.businesses);
     } catch (err) {
       renameFields(err, { total_amount: "amount", due_date: "due" });
+    }
+  },
+
+  getCustomer: async (id) => mapCustomer(await request<ApiCustomer>(`/customers/${encodeURIComponent(id)}/`)),
+
+  async createCustomer(input: CreateCustomerInput) {
+    const businesses = await request<ApiBusiness[]>("/businesses/");
+    const business = businesses[0]; // One business per owner in the backend.
+    if (!business) throw new ApiError("Set up your business first.", 400);
+    try {
+      return mapCustomer(
+        await request<ApiCustomer>("/customers/", {
+          method: "POST",
+          body: JSON.stringify({
+            business: business.id,
+            full_name: input.name,
+            email: input.email ?? "",
+            phone: input.phone ?? "",
+          }),
+        }),
+      );
+    } catch (err) {
+      renameFields(err, { full_name: "name" });
     }
   },
 

@@ -4,7 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
-import { Button, Card, ErrorAlert, Field, LoadingState, inputClass } from "@/components/ui";
+import {
+  Button,
+  Card,
+  ErrorAlert,
+  Field,
+  FormSkeleton,
+  inputClass,
+} from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 import { setActiveBusinessId } from "@/lib/auth/session";
 
@@ -54,7 +61,7 @@ function SetupForm() {
     }
   }
 
-  if (!ready) return <LoadingState />;
+  if (!ready) return <FormSkeleton fields={4} />;
 
   return (
     <Card className="p-6">

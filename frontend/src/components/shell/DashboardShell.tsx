@@ -12,9 +12,9 @@ export { Logo };
 const NAV: { href: string; label: string; soon?: boolean }[] = [
   { href: "/", label: "Dashboard" },
   { href: "/requests", label: "Payment requests" },
-  { href: "/customers", label: "Customers", soon: true },
+  { href: "/customers", label: "Customers" },
   { href: "/transactions", label: "Transactions", soon: true },
-  { href: "/reconciliation", label: "Reconciliation", soon: true },
+  { href: "/reconciliation", label: "Reconciliation" },
 ];
 
 function ActiveNavLinks({ onNavigate }: { onNavigate?: () => void }) {
