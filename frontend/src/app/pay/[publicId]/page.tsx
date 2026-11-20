@@ -2,7 +2,17 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
-import { Amount, Button, Card, ErrorAlert, ErrorState, Field, LoadingState, RequestStatusBadge, inputClass } from "@/components/ui";
+import {
+  Amount,
+  Button,
+  Card,
+  ErrorAlert,
+  ErrorState,
+  Field,
+  PayPageSkeleton,
+  RequestStatusBadge,
+  inputClass,
+} from "@/components/ui";
 import { ApiError, api, errorMessage } from "@/lib/api";
 import { saveHandoff } from "@/lib/payments/handoff";
 import { formatDate } from "@/lib/format/date";
@@ -147,7 +157,7 @@ function PayView() {
   const { publicId } = useParams<{ publicId: string }>();
   const q = useQuery(() => api.getPublicPaymentRequest(publicId), [publicId]);
 
-  if (q.status === "loading") return <LoadingState label="Loading payment request…" />;
+  if (q.status === "loading") return <PayPageSkeleton />;
   if (q.status === "error") {
     return q.error instanceof ApiError && q.error.status === 404 ? (
       <Card className="p-6 text-center">
@@ -163,7 +173,7 @@ function PayView() {
 
 export default function PayPage() {
   return (
-    <Suspense fallback={<LoadingState label="Loading payment request…" />}>
+    <Suspense fallback={<PayPageSkeleton />}>
       <PayView />
     </Suspense>
   );

@@ -7,9 +7,9 @@ import {
   Amount,
   Button,
   Card,
+  DetailSkeleton,
   EmptyState,
   ErrorState,
-  LoadingState,
   PageHeader,
   PaidProgress,
   RequestStatusBadge,
@@ -62,7 +62,7 @@ function RequestDetail() {
   const justCreated = useSearchParams().get("created") === "1";
   const req = useQuery(() => api.getPaymentRequest(id), [id]);
 
-  if (req.status === "loading") return <LoadingState />;
+  if (req.status === "loading") return <DetailSkeleton label="Loading payment request…" />;
   if (req.status === "error") return <ErrorState error={req.error} onRetry={req.reload} />;
 
   const r = req.data;
@@ -143,7 +143,7 @@ function RequestDetail() {
 
 export default function RequestDetailPage() {
   return (
-    <Suspense fallback={<LoadingState />}>
+    <Suspense fallback={<DetailSkeleton label="Loading payment request…" />}>
       <RequestDetail />
     </Suspense>
   );

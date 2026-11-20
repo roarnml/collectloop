@@ -1,7 +1,15 @@
 "use client";
 
-import { RequestList } from "@/components/RequestList";
-import { Amount, ButtonLink, Card, EmptyState, ErrorState, LoadingState, PageHeader } from "@/components/ui";
+import { RequestsTable } from "@/components/RequestsTable";
+import {
+  Amount,
+  ButtonLink,
+  Card,
+  KpiRowSkeleton,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+} from "@/components/ui";
 import { api } from "@/lib/api";
 import { toMinor } from "@/lib/format/money";
 import { useQuery } from "@/lib/hooks/useQuery";
@@ -29,18 +37,24 @@ export default function DashboardPage() {
         actions={<ButtonLink href="/requests/new">Create request</ButtonLink>}
       />
 
-      {q.status === "loading" && <LoadingState label="Loading your payments…" />}
       {q.status === "error" && <ErrorState error={q.error} onRetry={q.reload} />}
-      {q.status === "success" && (
+      {q.status !== "error" && (
         <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <Kpi label="Collected" value={q.data.collected_total} />
-            <Kpi label="Outstanding" value={q.data.outstanding_total} />
-            <Kpi label="Overdue" value={q.data.overdue_total} tone={toMinor(q.data.overdue_total) > 0n ? "danger" : undefined} />
-            <Kpi label="Paid in full" count={q.data.paid_request_count} />
-          </div>
+          {q.status === "success" ? (
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              <Kpi label="Collected" value={q.data.collected_total} />
+              <Kpi label="Outstanding" value={q.data.outstanding_total} />
+              <Kpi label="Overdue" value={q.data.overdue_total} tone={toMinor(q.data.overdue_total) > 0n ? "danger" : undefined} />
+              <Kpi label="Paid in full" count={q.data.paid_request_count} />
+            </div>
+          ) : (
+            <div role="status">
+              <span className="sr-only">Loading your payments…</span>
+              <KpiRowSkeleton />
+            </div>
+          )}
 
-          {toMinor(q.data.overdue_total) > 0n && (
+          {q.status === "success" && toMinor(q.data.overdue_total) > 0n && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-bad/20 bg-bad-soft px-5 py-4 text-sm">
               <p className="text-bad">
                 <strong className="font-semibold"><Amount value={q.data.overdue_total} /></strong> is past its due date.
@@ -51,7 +65,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {!!q.data.pending_count && (
+          {q.status === "success" && !!q.data.pending_count && (
             <p className="text-sm text-muted">
               {q.data.pending_count} payment{q.data.pending_count === 1 ? " is" : "s are"} still being verified.
             </p>
@@ -64,15 +78,18 @@ export default function DashboardPage() {
                 View all
               </ButtonLink>
             </div>
-            {q.data.recent_requests.length === 0 ? (
+            <RequestsTable
+              requests={q.status === "success" ? q.data.recent_requests : []}
+              isLoading={q.status === "loading"}
+              skeletonRows={4}
+              hidePagination
+            >
               <EmptyState
                 title="No payment requests yet"
                 body="Create your first request and share the link with your customer."
                 action={<ButtonLink href="/requests/new">Create request</ButtonLink>}
               />
-            ) : (
-              <RequestList requests={q.data.recent_requests} />
-            )}
+            </RequestsTable>
           </Card>
         </div>
       )}

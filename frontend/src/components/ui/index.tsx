@@ -268,3 +268,4 @@ export function Field({
 
 export const inputClass =
   "w-full rounded-lg border border-line bg-card px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 aria-[invalid=true]:border-bad";
+export * from "./skeleton";
